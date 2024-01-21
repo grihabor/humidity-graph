@@ -29,7 +29,7 @@ fn main() -> ! {
         dp.USART1,
         pins.d19,
         pins.d18.into_output(),
-        38400.into_baudrate(),
+        9600.into_baudrate(),
     );
     let pin = pins.d2.into_opendrain();
     let mut delay = Delay::new();
@@ -40,14 +40,12 @@ fn main() -> ! {
         _ = match dht11.perform_measurement(&mut delay) {
             Ok(meas) => {
                 _ = ufmt::uwriteln!(master, "Temp: {} Hum: {}", meas.temperature, meas.humidity);
-                bluetooth.write_byte(0);
-                bluetooth.write_byte(1);
-                bluetooth.write_byte(2);
-                bluetooth.write_byte(4);
-                //bluetooth.write_byte(b'\r');
-                //bluetooth.write_byte(b'\n');
-                //bluetooth.write_byte(meas.humidity as u8);
-                bluetooth.flush();
+                _ = ufmt::uwriteln!(
+                    bluetooth,
+                    "Temp: {} Hum: {}\r",
+                    meas.temperature,
+                    meas.humidity
+                );
             }
             Err(e) => {
                 _ = ufmt::uwriteln!(master, "Error");
