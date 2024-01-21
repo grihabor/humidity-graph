@@ -10,10 +10,12 @@ use arduino_hal::spi;
 use arduino_hal::Delay;
 use dht11::Dht11;
 use embedded_hal;
+use hal::hal::usart::Event;
 
 use avr_device::interrupt;
 use core::cell::RefCell;
 
+fn write_byte() {}
 #[arduino_hal::entry]
 fn main() -> ! {
     let dp = arduino_hal::Peripherals::take().unwrap();
@@ -33,24 +35,22 @@ fn main() -> ! {
 
     ufmt::uwriteln!(&mut master, "Hello from Mega!").unwrap();
     loop {
-        'tx: loop {
-            let byte = nb::block!(master.read()).unwrap();
+        let byte = master.read();
+        if let Ok(byte) = byte {
+            if byte == b'\r' {
+                _ = ufmt::uwriteln!(&mut master, "didn't expect carriage return");
+            }
             if byte == b'\n' {
                 bluetooth.write_byte(b'\r');
-                bluetooth.write_byte(byte);
-                break 'tx;
             }
             bluetooth.write_byte(byte);
         }
-        'rx: loop {
-            let byte = nb::block!(bluetooth.read()).unwrap();
+        let byte = bluetooth.read();
+        if let Ok(byte) = byte {
             if byte == b'\r' {
                 continue;
             }
             master.write_byte(byte);
-            if byte == b'\n' {
-                break 'rx;
-            }
         }
     }
 }

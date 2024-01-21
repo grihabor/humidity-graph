@@ -14,57 +14,45 @@ use embedded_hal;
 use avr_device::interrupt;
 use core::cell::RefCell;
 
-type Console = arduino_hal::hal::usart::Usart0<arduino_hal::DefaultClock>;
-static CONSOLE: interrupt::Mutex<RefCell<Option<Console>>> =
-    interrupt::Mutex::new(RefCell::new(None));
-
-macro_rules! print {
-    ($($t:tt)*) => {
-        interrupt::free(
-            |cs| {
-                if let Some(console) = CONSOLE.borrow(cs).borrow_mut().as_mut() {
-                    let _ = ufmt::uwrite!(console, $($t)*);
-                }
-            },
-        )
-    };
-}
-
-macro_rules! println {
-    ($($t:tt)*) => {
-        interrupt::free(
-            |cs| {
-                if let Some(console) = CONSOLE.borrow(cs).borrow_mut().as_mut() {
-                    let _ = ufmt::uwriteln!(console, $($t)*);
-                }
-            },
-        )
-    };
-}
-
-fn put_console(console: Console) {
-    interrupt::free(|cs| {
-        *CONSOLE.borrow(cs).borrow_mut() = Some(console);
-    })
-}
 #[arduino_hal::entry]
 fn main() -> ! {
-    // let dp = arduino_hal::Peripherals::take().unwrap();
-    // let pins = arduino_hal::pins!(dp);
-    // let serial = arduino_hal::default_serial!(dp, pins, 57600);
-    // put_console(serial);
+    let dp = arduino_hal::Peripherals::take().unwrap();
+    let pins = arduino_hal::pins!(dp);
+    let mut master = arduino_hal::Usart::new(
+        dp.USART0,
+        pins.d0,
+        pins.d1.into_output(),
+        57600.into_baudrate(),
+    );
 
-    // let mut pin = pins.d2.into_opendrain();
-    // let mut delay = Delay::new();
+    let mut bluetooth = arduino_hal::Usart::new(
+        dp.USART1,
+        pins.d19,
+        pins.d18.into_output(),
+        38400.into_baudrate(),
+    );
+    let pin = pins.d2.into_opendrain();
+    let mut delay = Delay::new();
 
-    // let mut dht11 = Dht11::new(pin);
+    let mut dht11 = Dht11::new(pin);
 
-    // loop {
-    //     match dht11.perform_measurement(&mut delay) {
-    //         Ok(meas) => println!("Temp: {} Hum: {}", meas.temperature, meas.humidity),
-    //         Err(e) => println!("Error"),
-    //     };
-    //     arduino_hal::delay_ms(1000);
-    // }
-
+    loop {
+        _ = match dht11.perform_measurement(&mut delay) {
+            Ok(meas) => {
+                _ = ufmt::uwriteln!(master, "Temp: {} Hum: {}", meas.temperature, meas.humidity);
+                bluetooth.write_byte(0);
+                bluetooth.write_byte(1);
+                bluetooth.write_byte(2);
+                bluetooth.write_byte(4);
+                //bluetooth.write_byte(b'\r');
+                //bluetooth.write_byte(b'\n');
+                //bluetooth.write_byte(meas.humidity as u8);
+                bluetooth.flush();
+            }
+            Err(e) => {
+                _ = ufmt::uwriteln!(master, "Error");
+            }
+        };
+        arduino_hal::delay_ms(1000);
+    }
 }
