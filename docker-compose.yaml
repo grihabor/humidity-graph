@@ -6,6 +6,7 @@ services:
     container_name: clickhouse
     hostname: clickhouse
     volumes:
+      - clickhouse-storage:/var/lib/clickhouse
       - ${PWD}/fs/volumes/clickhouse/etc/clickhouse-server/config.d/config.xml:/etc/clickhouse-server/config.d/config.xml
       - ${PWD}/fs/volumes/clickhouse/etc/clickhouse-server/users.d/users.xml:/etc/clickhouse-server/users.d/users.xml
     ports:
@@ -27,3 +28,4 @@ services:
 
 volumes:
   grafana-storage:
+  clickhouse-storage:
