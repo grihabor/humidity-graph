@@ -20,26 +20,13 @@ Rust project for the _Arduino Mega 2560_.
 
 ## Connect the device
 
-1. Connect to HC-05 via bluetooth
-2.
 ```bash
-sudo rfcomm connect /dev/rfcomm0 98:D3:71
-``` 
-3.
-```bash
+# First, connect to HC-05 via bluetooth. Then
+sudo rfcomm connect /dev/rfcomm0 98:D3:71  # configure rfcomm device
 sudo chmod 777 /dev/rfcomm0
-```
-4.
-```bash
-docker-compose up -d
-```
-5.
-```bash
-clickhouse client -q "$(cat schema.sql)"
-```
-6.
-```bash
-python receiver.py
+docker-compose up -d                       # spin up clickhouse and grafana
+clickhouse client -q "$(cat schema.sql)"   # initialize schema
+python receiver.py                         # start fetching the data
 ```
 
 ## License
