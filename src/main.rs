@@ -40,12 +40,12 @@ fn main() -> ! {
         _ = match dht11.perform_measurement(&mut delay) {
             Ok(meas) => {
                 _ = ufmt::uwriteln!(master, "Temp: {} Hum: {}", meas.temperature, meas.humidity);
-                _ = ufmt::uwriteln!(
-                    bluetooth,
-                    "Temp: {} Hum: {}\r",
-                    meas.temperature,
-                    meas.humidity
-                );
+                for byte in meas.humidity.to_le_bytes() {
+                    bluetooth.write_byte(byte);
+                }
+                for byte in meas.temperature.to_le_bytes() {
+                    bluetooth.write_byte(byte);
+                }
             }
             Err(e) => {
                 _ = ufmt::uwriteln!(master, "Error");
